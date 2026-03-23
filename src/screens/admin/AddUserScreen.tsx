@@ -1,14 +1,31 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, Dimensions } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { isValidEmail, isValidPassword, showError } from '../../utils/validators';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
+const IS_SMALL_DEVICE = width < 380;
+
+const COLORS = {
+  background: '#0e0e0e',
+  surface_low: '#131313',
+  surface_highest: '#262626',
+  primary: '#81ecff',
+  primary_dim: '#00d4ec',
+  secondary: '#2ff801',
+  error: '#ff716c',
+  on_surface: '#ffffff',
+  on_surface_variant: '#adaaaa',
+  outline: '#777575',
+};
 
 export default function AddUserScreen() {
   const { addUser } = useContext(AuthContext);
-  const navigation = useNavigation();
+  const navigation: any = useNavigation();
 
   const [step, setStep] = useState(1);
   const [activeInput, setActiveInput] = useState<string | null>(null);
@@ -63,24 +80,41 @@ export default function AddUserScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={styles.mainContainer}
-    >
-      <View style={[styles.orb, styles.orbTop]} />
-      <View style={[styles.orb, styles.orbBottom]} />
+    <SafeAreaView style={styles.container}>
+      {/* Background Ambience */}
+      <View style={styles.ambientGlow} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {step === 1 ? (
-          <>
-            <View style={styles.header}>
-              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                <Text style={styles.backBtnText}>{'<'} CANCEL</Text>
-              </TouchableOpacity>
-              <Text style={styles.title}>Phase 1: Identity Config</Text>
-            </View>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={styles.keyboardView}
+      >
+        <View style={styles.appBar}>
+          <TouchableOpacity 
+            style={styles.backBtn} 
+            activeOpacity={0.7} 
+            onPress={() => step === 1 ? navigation.goBack() : setStep(1)}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={COLORS.primary} style={{ marginRight: 8 }} />
+            <Text style={styles.backBtnText}>{step === 1 ? 'CANCEL' : 'BACK'}</Text>
+          </TouchableOpacity>
+        </View>
 
-            <BlurView intensity={20} tint="dark" style={styles.formCard}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Text style={styles.pageTitle}>Provision <Text style={{color: COLORS.primary}}>Node</Text></Text>
+          
+          <Text style={styles.subtext}>
+            {step === 1 
+              ? 'Phase 1/2: Establish core identity signatures and access vectors for the incoming entity.'
+              : 'Phase 2/2: Confirm physical tracking variables and set energy cycle limits.'}
+          </Text>
+
+          <View style={styles.stepperContainer}>
+            <View style={[styles.stepBar, { backgroundColor: COLORS.primary }]} />
+            <View style={[styles.stepBar, { backgroundColor: step === 2 ? COLORS.primary : COLORS.surface_highest }]} />
+          </View>
+
+          {step === 1 ? (
+            <View style={styles.formCard}>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>DESIGNATION (NAME) *</Text>
                 <TextInput 
@@ -89,7 +123,7 @@ export default function AddUserScreen() {
                   onChangeText={t => handleChange('name', t)} 
                   onFocus={() => setActiveInput('name')}
                   onBlur={() => setActiveInput(null)}
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={COLORS.outline}
                   placeholder="Enter designation"
                 />
               </View>
@@ -103,14 +137,14 @@ export default function AddUserScreen() {
                   autoCapitalize="none"
                   onFocus={() => setActiveInput('email')}
                   onBlur={() => setActiveInput(null)}
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={COLORS.outline}
                   placeholder="Enter email"
                   keyboardType="email-address"
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>SECURITY KEY *</Text>
+                <Text style={styles.label}>SECURITY KEY (PASSWORD) *</Text>
                 <TextInput 
                   style={[styles.input, activeInput === 'pass' && styles.inputActive]} 
                   value={form.password} 
@@ -118,7 +152,7 @@ export default function AddUserScreen() {
                   secureTextEntry
                   onFocus={() => setActiveInput('pass')}
                   onBlur={() => setActiveInput(null)}
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={COLORS.outline}
                   placeholder="Enter temporary password"
                 />
               </View>
@@ -126,7 +160,7 @@ export default function AddUserScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>AUTO-GENERATED METER ID</Text>
                 <TextInput 
-                  style={[styles.input, { backgroundColor: 'rgba(0,0,0,0.5)', color: '#3B82F6', fontWeight: 'bold' }]} 
+                  style={[styles.input, { backgroundColor: 'transparent', borderColor: 'transparent', color: COLORS.primary, fontWeight: '900', paddingLeft: 0, fontSize: 18 }]} 
                   value={form.meterNumber} 
                   editable={false} 
                 />
@@ -141,36 +175,28 @@ export default function AddUserScreen() {
                   keyboardType="phone-pad"
                   onFocus={() => setActiveInput('phone')}
                   onBlur={() => setActiveInput(null)}
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={COLORS.outline}
+                  placeholder="Enter contact number"
                 />
               </View>
 
-              <TouchableOpacity onPress={handleNext} activeOpacity={0.8} style={{marginTop: 10}}>
+              <TouchableOpacity onPress={handleNext} activeOpacity={0.8} style={{marginTop: 16}}>
                 <LinearGradient
-                  colors={['#00E5FF', '#3B82F6']}
+                  colors={[COLORS.primary_dim, COLORS.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={styles.primaryBtn}
+                  style={styles.actionBtn}
                 >
-                  <Text style={styles.primaryBtnText}>PROCEED TO PHASE 2</Text>
+                  <Text style={styles.actionText}>PROCEED TO PHASE 2</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            </BlurView>
-          </>
-        ) : (
-          <>
-            <View style={styles.header}>
-              <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)}>
-                <Text style={styles.backBtnText}>{'<'} PREVIOUS PHASE</Text>
-              </TouchableOpacity>
-              <Text style={styles.title}>Phase 2: Hardware Config</Text>
             </View>
-
-            <BlurView intensity={20} tint="dark" style={styles.formCard}>
+          ) : (
+            <View style={styles.formCard}>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>ASSIGNED METER ID</Text>
                 <TextInput 
-                  style={[styles.input, { backgroundColor: 'rgba(0,0,0,0.5)', color: '#3B82F6', fontWeight: 'bold' }]} 
+                  style={[styles.input, { backgroundColor: 'transparent', borderColor: 'transparent', color: COLORS.primary, fontWeight: '900', paddingLeft: 0, fontSize: 18 }]} 
                   value={form.meterNumber} 
                   editable={false} 
                 />
@@ -232,49 +258,160 @@ export default function AddUserScreen() {
                 />
               </View>
 
-              <TouchableOpacity onPress={handleSave} activeOpacity={0.8} style={{marginTop: 10}}>
+              <TouchableOpacity onPress={handleSave} activeOpacity={0.8} style={{marginTop: 16}}>
                 <LinearGradient
-                  colors={['#8B5CF6', '#00E5FF']}
+                  colors={[COLORS.secondary, '#106e00']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={styles.primaryBtn}
+                  style={styles.actionBtn}
                 >
-                  <Text style={styles.primaryBtnText}>COMMIT CONFIGURATION</Text>
+                  <Text style={[styles.actionText, { color: '#ffffff' }]}>COMMIT CONFIGURATION</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            </BlurView>
-          </>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#0B0F19' },
-  orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150, opacity: 0.15 },
-  orbTop: { top: -50, right: -50, backgroundColor: '#00E5FF' },
-  orbBottom: { bottom: -100, left: -50, width: 400, height: 400, borderRadius: 200, backgroundColor: '#8B5CF6' },
-  
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 60, flexGrow: 1 },
-  header: { paddingTop: 60, paddingBottom: 20 },
-  backBtn: { marginBottom: 15 },
-  backBtnText: { color: '#00E5FF', fontSize: 12, fontWeight: '800', letterSpacing: 2 },
-  title: { fontSize: 24, fontWeight: '900', color: '#F8FAFC', letterSpacing: 1 },
-
-  formCard: { padding: 24, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(15, 23, 42, 0.6)Label ', overflow: 'hidden' },
-  
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 10, color: '#94A3B8', marginBottom: 8, fontWeight: '800', letterSpacing: 1 },
-  input: { backgroundColor: 'rgba(0, 0, 0, 0.3)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, padding: 14, fontSize: 14, color: '#F8FAFC' },
-  inputActive: { borderColor: '#00E5FF', shadowColor: '#00E5FF', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  
-  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  optionBtn: { flex: 1, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center', borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.3)' },
-  optionBtnActive: { backgroundColor: 'rgba(0, 229, 255, 0.1)', borderColor: '#00E5FF' },
-  optionText: { color: '#64748B', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-  optionTextActive: { color: '#00E5FF', fontWeight: '900' },
-  
-  primaryBtn: { padding: 16, borderRadius: 12, alignItems: 'center', shadowColor: '#00E5FF', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-  primaryBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900', letterSpacing: 2 }
+  container: { 
+    flex: 1, 
+    backgroundColor: COLORS.background 
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  ambientGlow: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width,
+    backgroundColor: 'rgba(129, 236, 255, 0.05)',
+  },
+  appBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)'
+  },
+  backBtn: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  backBtnText: { 
+    color: '#ffffff', 
+    fontSize: 12, 
+    fontWeight: '800', 
+    letterSpacing: 2 
+  },
+  scrollContent: { 
+    paddingHorizontal: IS_SMALL_DEVICE ? 16 : 24, 
+    paddingTop: 32,
+    paddingBottom: 60, 
+    flexGrow: 1 
+  },
+  pageTitle: {
+    fontSize: IS_SMALL_DEVICE ? 32 : 40,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -1,
+    marginBottom: 8,
+  },
+  subtext: {
+    color: COLORS.on_surface_variant,
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '500',
+    marginBottom: 32,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 32,
+  },
+  stepBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  formCard: { 
+    padding: 24, 
+    borderRadius: 16, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.05)', 
+    backgroundColor: COLORS.surface_highest, 
+    marginBottom: 32 
+  },
+  inputGroup: { 
+    marginBottom: 24 
+  },
+  label: { 
+    fontSize: 10, 
+    color: COLORS.outline, 
+    marginBottom: 12, 
+    fontWeight: '900', 
+    letterSpacing: 1.5 
+  },
+  input: { 
+    backgroundColor: COLORS.surface_low, 
+    borderWidth: 1, 
+    borderColor: 'transparent', 
+    borderRadius: 12, 
+    paddingHorizontal: 16, 
+    height: 56,
+    fontSize: 14, 
+    color: '#ffffff',
+    fontWeight: '600'
+  },
+  inputActive: { 
+    borderColor: COLORS.primary, 
+    backgroundColor: 'rgba(129, 236, 255, 0.05)' 
+  },
+  toggleRow: { 
+    flexDirection: 'row', 
+    gap: 8 
+  },
+  optionBtn: { 
+    flex: 1, 
+    padding: 14, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.05)', 
+    alignItems: 'center', 
+    borderRadius: 12, 
+    backgroundColor: COLORS.surface_low 
+  },
+  optionBtnActive: { 
+    backgroundColor: 'rgba(129, 236, 255, 0.1)', 
+    borderColor: COLORS.primary 
+  },
+  optionText: { 
+    color: COLORS.on_surface_variant, 
+    fontSize: 11, 
+    fontWeight: '800', 
+    letterSpacing: 1 
+  },
+  optionTextActive: { 
+    color: COLORS.primary, 
+    fontWeight: '900' 
+  },
+  actionBtn: { 
+    height: 56, 
+    borderRadius: 12, 
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  actionText: { 
+    color: '#003840', 
+    fontSize: 12, 
+    fontWeight: '900', 
+    letterSpacing: 2 
+  }
 });

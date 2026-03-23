@@ -13,10 +13,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.voltaiapp.electricity"
+      "bundleIdentifier": "com.voltaiapp1.electricity"
     },
     "android": {
-      "package": "com.voltaiapp.electricity",
+      "package": "com.voltaiapp1.electricity",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

@@ -1,12 +1,27 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import React, { useState, useContext, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Dimensions, Animated, Easing, ScrollView, SafeAreaView } from 'react-native';
 import { AuthContext, Role } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { isValidEmail, showError } from '../utils/validators';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
+const IS_SMALL_DEVICE = width < 380;
+
+const COLORS = {
+  background: '#0e0e0e',
+  surface_low: '#131313',
+  surface_highest: '#262626',
+  primary: '#81ecff',
+  primary_dim: '#00d4ec',
+  primary_container: '#00e3fd',
+  secondary: '#2ff801',
+  on_surface: '#ffffff',
+  on_surface_variant: '#adaaaa',
+  outline_variant: '#494847',
+};
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -17,6 +32,28 @@ export default function LoginScreen() {
   const { login } = useContext(AuthContext);
   const navigation: any = useNavigation();
 
+  // Animations
+  const rippleAnim = useRef(new Animated.Value(0)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rippleAnim, {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(buttonScale, { toValue: 0.95, useNativeDriver: true }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(buttonScale, { toValue: 1, useNativeDriver: true }).start();
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       showError('Please enter email and password');
@@ -26,7 +63,6 @@ export default function LoginScreen() {
       showError('Please enter a valid email address');
       return;
     }
-    
     try {
       await login(email.trim(), password, role);
     } catch (error: any) {
@@ -35,237 +71,389 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Background Orbs */}
-      <View style={[styles.orb, styles.orbTop]} />
-      <View style={[styles.orb, styles.orbBottom]} />
+    <SafeAreaView style={styles.container}>
+      {/* Background Energy Ripples / Ambient Glow */}
+      <View style={styles.ambientGlowTop} />
+      <View style={styles.ambientGlowBottom} />
       
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <BlurView intensity={20} tint="dark" style={styles.glassCard}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.brandTitle}>EEBS</Text>
-            <Text style={styles.subtitle}>Electricity Billing System</Text>
-          </View>
-          
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity 
-              style={[styles.toggleBtn, role === 'customer' && styles.toggleBtnActive]} 
-              onPress={() => setRole('customer')}
-            >
-              <Text style={[styles.toggleText, role === 'customer' && styles.toggleTextActive]}>Customer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.toggleBtn, role === 'admin' && styles.toggleBtnActive]} 
-              onPress={() => setRole('admin')}
-            >
-              <Text style={[styles.toggleText, role === 'admin' && styles.toggleTextActive]}>Admin</Text>
-            </TouchableOpacity>
-          </View>
+      <Animated.View style={[
+        styles.rippleRing,
+        {
+          transform: [{ scale: rippleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.5] }) }],
+          opacity: rippleAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0.15, 0] })
+        }
+      ]} pointerEvents="none" />
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>EMAIL</Text>
-            <TextInput
-              style={[styles.input, activeInput === 'email' && styles.inputActive]}
-              placeholder="Enter your email"
-              placeholderTextColor="#64748B"
-              value={email}
-              onChangeText={setEmail}
-              onFocus={() => setActiveInput('email')}
-              onBlur={() => setActiveInput(null)}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
+      {/* Top Header - Kept out of ScrollView so it doesn't move */}
+      <View style={styles.topHeader}>
+        <View style={styles.logoRow}>
+          <MaterialIcons name="bolt" size={24} color={COLORS.primary} />
+          <Text style={styles.headerTitle}>KINETIC ETHER</Text>
+        </View>
+        <Text style={styles.versionText}>Energy Grid v2.4</Text>
+      </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>PASSWORD</Text>
-            <TextInput
-              style={[styles.input, activeInput === 'password' && styles.inputActive]}
-              placeholder="Enter your password"
-              placeholderTextColor="#64748B"
-              value={password}
-              onChangeText={setPassword}
-              onFocus={() => setActiveInput('password')}
-              onBlur={() => setActiveInput(null)}
-              secureTextEntry
-            />
-          </View>
-          
-          <TouchableOpacity onPress={handleLogin} activeOpacity={0.8}>
-            <LinearGradient
-              colors={['#00E5FF', '#8B5CF6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.buttonGradient}
-            >
-              <Text style={styles.buttonText}>Authenticate {role === 'admin' ? 'Admin' : 'Customer'}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <BlurView intensity={30} tint="dark" style={styles.glassCard}>
+            
+            <View style={styles.cardHeader}>
+              <Text style={styles.mainHeading}>Powering Up.</Text>
+              <Text style={styles.subHeading}>Access your enterprise energy management dashboard.</Text>
+            </View>
 
-          
+            {/* Role Toggle */}
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, role === 'customer' && styles.toggleBtnActiveCustomer]} 
+                onPress={() => setRole('customer')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.toggleText, role === 'customer' && styles.toggleTextActiveCustomer]}>Customer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, role === 'admin' && styles.toggleBtnActiveAdmin]} 
+                onPress={() => setRole('admin')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.toggleText, role === 'admin' && styles.toggleTextActiveAdmin]}>Admin</Text>
+              </TouchableOpacity>
+            </View>
 
-          {role === 'admin' && (
-            <Text style={styles.hint}>System Admin: admin@system.com | password123</Text>
-          )}
-        </BlurView>
+            {/* Form Fields */}
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, activeInput === 'email' && styles.labelActive]}>Corporate Email</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, activeInput === 'email' && styles.inputActiveBorder]}
+                  placeholder=""
+                  value={email}
+                  onChangeText={setEmail}
+                  onFocus={() => setActiveInput('email')}
+                  onBlur={() => setActiveInput(null)}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  selectionColor={COLORS.primary}
+                />
+                <MaterialIcons 
+                  name="alternate-email" 
+                  size={20} 
+                  color={activeInput === 'email' ? COLORS.primary : COLORS.on_surface_variant} 
+                  style={styles.inputIcon} 
+                />
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, activeInput === 'password' && styles.labelActive]}>Access Key</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, activeInput === 'password' && styles.inputActiveBorder]}
+                  placeholder=""
+                  value={password}
+                  onChangeText={setPassword}
+                  onFocus={() => setActiveInput('password')}
+                  onBlur={() => setActiveInput(null)}
+                  secureTextEntry
+                  selectionColor={COLORS.primary}
+                />
+                <MaterialIcons 
+                  name="lock-open" 
+                  size={20} 
+                  color={activeInput === 'password' ? COLORS.primary : COLORS.on_surface_variant} 
+                  style={styles.inputIcon} 
+                />
+              </View>
+            </View>
+
+            {/* Session Active Toggle (Visual) */}
+            <View style={styles.sessionRow}>
+              <View style={styles.checkboxRow}>
+                <View style={styles.fakeCheckboxWrapper}>
+                  <View style={styles.fakeCheckboxNubbin} />
+                </View>
+                <Text style={styles.sessionText}>Keep active</Text>
+              </View>
+            </View>
+
+            {/* Login Button */}
+            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+              <TouchableOpacity 
+                onPress={handleLogin} 
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={[COLORS.primary, COLORS.primary_dim]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.loginButton}
+                >
+                  <Text style={styles.loginButtonText}>Initialize Session</Text>
+                  <MaterialIcons name="arrow-forward" size={18} color={COLORS.surface_low} style={{marginLeft: 8}} />
+                </LinearGradient>
+                <View style={styles.loginButtonGlow} pointerEvents="none" />
+              </TouchableOpacity>
+            </Animated.View>
+
+            {role === 'admin' && (
+              <Text style={styles.hintText}>OVERRIDE: admin@system.com / password123</Text>
+            )}
+
+            {/* Security Notice */}
+            <View style={styles.securityNotice}>
+              <MaterialIcons name="verified-user" size={12} color={COLORS.on_surface_variant} />
+              <Text style={styles.securityText}>End-to-End Quantum Encrypted</Text>
+            </View>
+
+          </BlurView>
+        </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0F19', // Deep dark ai theme
-    justifyContent: 'center',
+    backgroundColor: COLORS.background,
+  },
+  ambientGlowTop: {
+    position: 'absolute',
+    top: -height * 0.1,
+    left: -width * 0.2,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: width * 0.4,
+    backgroundColor: COLORS.primary_container,
+    opacity: 0.04,
+  },
+  ambientGlowBottom: {
+    position: 'absolute',
+    bottom: -height * 0.1,
+    right: -width * 0.2,
+    width: width,
+    height: width,
+    borderRadius: width * 0.5,
+    backgroundColor: COLORS.secondary,
+    opacity: 0.02,
+  },
+  rippleRing: {
+    position: 'absolute',
+    top: '30%',
+    left: '10%',
+    width: width * 1.5,
+    height: width * 1.5,
+    borderRadius: width * 0.75,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'android' ? 40 : 10,
+    paddingBottom: 20,
+    zIndex: 50,
+  },
+  logoRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  orb: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    opacity: 0.25,
-    backgroundColor: '#8B5CF6', // Purple orb
+  headerTitle: {
+    color: COLORS.primary,
+    fontSize: IS_SMALL_DEVICE ? 14 : 16,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  orbTop: {
-    top: -100,
-    left: -100,
-    backgroundColor: '#00E5FF', // Blue orb
-  },
-  orbBottom: {
-    bottom: -150,
-    right: -100,
-    width: 400,
-    height: 400,
-    borderRadius: 200,
+  versionText: {
+    color: COLORS.on_surface_variant,
+    fontSize: IS_SMALL_DEVICE ? 9 : 10,
+    letterSpacing: -0.5,
+    textTransform: 'uppercase',
   },
   keyboardView: {
-    width: '100%',
-    alignItems: 'center',
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   glassCard: {
-    width: width * 0.9,
-    maxWidth: 400,
-    padding: 30,
+    width: '100%',
+    maxWidth: 480,
+    padding: IS_SMALL_DEVICE ? 24 : 32,
     borderRadius: 24,
+    backgroundColor: 'rgba(32, 31, 31, 0.4)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    overflow: 'hidden',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 36,
+  cardHeader: {
+    marginBottom: 28,
   },
-  brandTitle: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: '#00E5FF',
-    letterSpacing: 2,
+  mainHeading: {
+    color: COLORS.on_surface,
+    fontSize: IS_SMALL_DEVICE ? 28 : 32,
+    fontWeight: '700',
+    letterSpacing: -1,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#94A3B8',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+  subHeading: {
+    color: COLORS.on_surface_variant,
+    fontSize: IS_SMALL_DEVICE ? 12 : 14,
+    lineHeight: 20,
   },
   toggleContainer: {
     flexDirection: 'row',
-    marginBottom: 30,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 32,
     padding: 4,
+    marginBottom: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 32,
   },
-  toggleBtnActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  toggleBtnActiveCustomer: {
+    backgroundColor: COLORS.primary_container,
+  },
+  toggleBtnActiveAdmin: {
+    backgroundColor: COLORS.surface_highest,
   },
   toggleText: {
-    color: '#64748B',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  toggleTextActive: {
-    color: '#F8FAFC',
-  },
-  formGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginBottom: 8,
+    color: COLORS.on_surface_variant,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1,
-  },
-  input: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#F8FAFC',
-  },
-  inputActive: {
-    borderColor: '#00E5FF',
-    shadowColor: '#00E5FF',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  buttonGradient: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#00E5FF',
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  linkContainer: {
-    marginTop: 24,
+  toggleTextActiveCustomer: {
+    color: '#004d57',
+  },
+  toggleTextActiveAdmin: {
+    color: COLORS.on_surface,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    color: COLORS.on_surface_variant,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  labelActive: {
+    color: COLORS.primary,
+  },
+  inputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  linkText: {
-    color: '#94A3B8',
-    fontSize: 14,
+  input: {
+    flex: 1,
+    height: 44,
+    color: COLORS.on_surface,
+    fontSize: 15,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.outline_variant,
   },
-  linkHighlight: {
-    color: '#00E5FF',
-    fontWeight: '700',
+  inputActiveBorder: {
+    borderBottomColor: COLORS.primary,
   },
-  hint: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: '#64748B',
-    fontSize: 12,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    padding: 8,
+  inputIcon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 12,
+  },
+  sessionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fakeCheckboxWrapper: {
+    width: 30,
+    height: 16,
     borderRadius: 8,
+    backgroundColor: COLORS.surface_highest,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+    marginRight: 8,
+  },
+  fakeCheckboxNubbin: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.secondary,
+    transform: [{ translateX: 14 }],
+  },
+  sessionText: {
+    color: COLORS.on_surface,
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  loginButton: {
+    height: IS_SMALL_DEVICE ? 56 : 64,
+    borderRadius: 32,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  loginButtonGlow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.primary_container,
+    borderRadius: 32,
+    zIndex: 1,
+    transform: [{ scale: 1.05 }],
+    opacity: 0.15,
+  },
+  loginButtonText: {
+    color: '#005762',
+    fontSize: IS_SMALL_DEVICE ? 16 : 18,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  securityNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    opacity: 0.4,
+  },
+  securityText: {
+    color: COLORS.on_surface,
+    fontSize: IS_SMALL_DEVICE ? 8 : 9,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginLeft: 6,
+  },
+  hintText: {
+    color: COLORS.primary,
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 16,
+    letterSpacing: 1,
   }
 });

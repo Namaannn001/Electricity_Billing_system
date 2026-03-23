@@ -20,6 +20,7 @@ export interface User {
   billType?: string;
   billingDays?: string;
   pushToken?: string;
+  profileImage?: string;
 }
 
 export interface Bill {
