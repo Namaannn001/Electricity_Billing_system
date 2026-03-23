@@ -19,6 +19,7 @@ export interface User {
   phaseCode?: string;
   billType?: string;
   billingDays?: string;
+  pushToken?: string;
 }
 
 export interface Bill {
@@ -43,6 +44,7 @@ interface AuthContextData {
   getAllUsers: () => Promise<User[]>;
   addUser: (userData: Omit<User, 'id'>) => Promise<void>;
   updateUser: (userId: string, updatedData: Partial<User>) => Promise<void>;
+  updatePushToken: (userId: string, token: string) => Promise<void>;
   getAllBills: () => Promise<Bill[]>;
   getCustomerBills: (customerId: string) => Promise<Bill[]>;
   addBill: (billData: Omit<Bill, 'id'>) => Promise<void>;
@@ -63,8 +65,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   }, []);
 
   const seedData = async () => {
-    const existingUsers = await AsyncStorage.getItem(USERS_KEY);
-    if (!existingUsers) {
+    const existingUsersStr = await AsyncStorage.getItem(USERS_KEY);
+    const users = existingUsersStr ? JSON.parse(existingUsersStr) : [];
+    
+    // Seed admin if no users exist at all
+    if (users.length === 0) {
       const defaultAdmin: User = {
         id: 'admin_1',
         name: 'Super Admin',
@@ -73,6 +78,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         role: 'admin',
       };
       await AsyncStorage.setItem(USERS_KEY, JSON.stringify([defaultAdmin]));
+      console.log("SYSTEM SEED: DEFAULT ADMIN INITIALIZED.");
     }
   };
 
@@ -85,9 +91,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     const usersStr = await AsyncStorage.getItem(USERS_KEY);
     const users: User[] = usersStr ? JSON.parse(usersStr) : [];
     
+    // Safety trim for accidental whitespace
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
     const foundUser = users.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && 
-           u.password === password &&
+      u => u.email.toLowerCase() === cleanEmail && 
+           u.password === cleanPassword &&
            u.role === role
     );
 
@@ -158,6 +168,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       }
     }
   };
+  
+  const updatePushToken = async (userId: string, token: string) => {
+    const users = await getAllUsers();
+    const updatedUsers = users.map(u => u.id === userId ? { ...u, pushToken: token } : u);
+    await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+    
+    if (user && user.id === userId) {
+      const updatedUser = { ...user, pushToken: token };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('@currentUser', JSON.stringify(updatedUser));
+    }
+  };
 
   const getAllBills = async (): Promise<Bill[]> => {
     const data = await AsyncStorage.getItem(BILLS_KEY);
@@ -182,7 +204,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, getAllUsers, addUser, updateUser, getAllBills, getCustomerBills, addBill, payBill }}>
+    <AuthContext.Provider value={{ user, login, register, logout, getAllUsers, addUser, updateUser, updatePushToken, getAllBills, getCustomerBills, addBill, payBill }}>
       {children}
     </AuthContext.Provider>
   );

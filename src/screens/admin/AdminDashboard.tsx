@@ -1,7 +1,11 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { AuthContext, Bill, User } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+
+const { width } = Dimensions.get('window');
 
 export default function AdminDashboard() {
   const { logout, getAllUsers, getAllBills } = useContext(AuthContext);
@@ -20,7 +24,6 @@ export default function AdminDashboard() {
       });
     };
     
-    // Polling or using focus effect is better, but this is simple mocked fetch for now
     const unsubscribe = navigation.addListener('focus', () => {
       fetchStats();
     });
@@ -29,95 +32,147 @@ export default function AdminDashboard() {
   }, [navigation]);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Admin Panel</Text>
-        <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.mainContainer}>
+      <View style={[styles.orb, styles.orbTop]} />
+      <View style={[styles.orb, styles.orbBottom]} />
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Customers</Text>
-          <Text style={styles.statValue}>{stats.users}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>System Admin</Text>
+          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>DISCONNECT</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Total Bills Gen.</Text>
-          <Text style={styles.statValue}>{stats.bills}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>Pending Bills</Text>
-          <Text style={styles.statValue}>{stats.unpaid}</Text>
-        </View>
-      </View>
 
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity 
-          style={styles.actionBtn} 
-          onPress={() => navigation.navigate('ManageUsers')}
-        >
-          <Text style={styles.actionText}>Manage Customers</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.actionBtnSecondary} 
-          onPress={() => navigation.navigate('AddUser')}
-        >
-          <Text style={styles.actionTextSecondary}>Add New Customer</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        <View style={styles.statsContainer}>
+          <BlurView intensity={20} tint="dark" style={styles.statCard}>
+            <Text style={styles.statLabel}>ENTITIES</Text>
+            <Text style={styles.statValue}>{stats.users}</Text>
+          </BlurView>
+          <BlurView intensity={20} tint="dark" style={styles.statCard}>
+            <Text style={styles.statLabel}>BILLS GEN.</Text>
+            <Text style={styles.statValue}>{stats.bills}</Text>
+          </BlurView>
+          <BlurView intensity={20} tint="dark" style={styles.statCard}>
+            <Text style={styles.statLabel}>PENDING</Text>
+            <Text style={styles.statValue}>{stats.unpaid}</Text>
+          </BlurView>
+        </View>
+
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('ManageUsers')}
+          >
+            <LinearGradient
+              colors={['#8B5CF6', '#3B82F6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.actionBtn}
+            >
+              <Text style={styles.actionText}>MANAGE CUSTOMERS</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('AddUser')}
+          >
+            <BlurView intensity={20} tint="dark" style={styles.actionBtnSecondary}>
+              <Text style={styles.actionTextSecondary}>ADD NEW CUSTOMER</Text>
+            </BlurView>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  mainContainer: { 
+    flex: 1, 
+    backgroundColor: '#0B0F19' 
+  },
+  orb: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    opacity: 0.15,
+  },
+  orbTop: {
+    top: -50,
+    right: -100,
+    backgroundColor: '#3B82F6',
+  },
+  orbBottom: {
+    bottom: -100,
+    left: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: '#8B5CF6',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   header: {
-    backgroundColor: '#2563EB',
-    padding: 20,
-    paddingTop: 60,
+    padding: 24,
+    paddingTop: 80,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  title: { color: '#FFF', fontSize: 22, fontWeight: 'bold' },
-  logoutBtn: { backgroundColor: '#1E40AF', padding: 8, borderRadius: 6 },
-  logoutText: { color: '#FFF', fontWeight: 'bold' },
+  title: { color: '#F8FAFC', fontSize: 24, fontWeight: '900', letterSpacing: 1 },
+  logoutBtn: { 
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+    paddingVertical: 8, 
+    paddingHorizontal: 12, 
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  logoutText: { color: '#94A3B8', fontWeight: '700', fontSize: 11, letterSpacing: 1 },
   statsContainer: {
     flexDirection: 'row',
-    padding: 15,
+    paddingHorizontal: 20,
     justifyContent: 'space-between',
+    marginBottom: 40,
   },
   statCard: {
-    backgroundColor: '#FFF',
-    padding: 15,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 16,
     width: '31%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    overflow: 'hidden',
   },
-  statLabel: { fontSize: 12, color: '#6B7280', textAlign: 'center', marginBottom: 5 },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: '#1F2937' },
-  actionsContainer: { padding: 20 },
+  statLabel: { fontSize: 10, color: '#94A3B8', textAlign: 'center', marginBottom: 8, fontWeight: '800', letterSpacing: 1 },
+  statValue: { fontSize: 28, fontWeight: '900', color: '#00E5FF' },
+  actionsContainer: { paddingHorizontal: 20 },
   actionBtn: {
-    backgroundColor: '#10B981',
-    padding: 15,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 16,
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
+    shadowColor: '#8B5CF6',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
-  actionText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  actionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
   actionBtnSecondary: {
-    backgroundColor: '#FFF',
-    padding: 15,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: 'rgba(0, 229, 255, 0.3)',
+    backgroundColor: 'rgba(0, 229, 255, 0.05)',
+    overflow: 'hidden',
   },
-  actionTextSecondary: { color: '#10B981', fontSize: 16, fontWeight: 'bold' }
+  actionTextSecondary: { color: '#00E5FF', fontSize: 14, fontWeight: '800', letterSpacing: 1 }
 });
